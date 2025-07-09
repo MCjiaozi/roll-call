@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: roll-call-deployment
+  labels:
+    app: roll-call
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: roll-call
+  template:
+    metadata:
+      labels:
+        app: roll-call
+    spec:
+      containers:
+      - name: roll-call-container
+        image: ghcr.io/mcjiaozi/roll-call:$IMAGE_TAG
+        ports:
+        - containerPort: 3000
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        env:
+        - name: PORT
+          value: "3000"
+        - name: NODE_ENV
+          value: "production"
+      imagePullSecrets:
+        - name: ghcr-credentials
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: roll-call-service
+spec:
+  selector:
+    app: roll-call
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: roll-call-ingress
+spec:
+  rules:
+  - host: roll-call.mcjiaozi.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: roll-call-service
+            port:
+              number: 80

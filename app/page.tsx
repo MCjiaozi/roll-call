@@ -1,103 +1,301 @@
-import Image from "next/image";
-
+"use client";
+import { useEffect, useState } from 'react';
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    const [name, setName] = useState<string>("");
+    const [history, setHistory] = useState<string[]>([]);
+    const [nameList, setNameList] = useState<string[]>(defaultNameList);
+    const [cycleSet, setCycleSet] = useState<Set<string>>(new Set());
+    const [settings, setSettings] = useState<(boolean)[]>([true]);
+    function getOne() {
+        const newName = nameList[Math.floor(Math.random() * nameList.length)];
+        const newCycleSet = new Set(cycleSet);
+        console.log("抽取到：", newName);
+        if (settings[0] && cycleSet.has(newName) && cycleSet.size < nameList.length) {
+            console.log("重复了，重新获取");
+            return getOne();
+        }
+        else if (cycleSet.size >= nameList.length) { newCycleSet.clear(); console.log("已抽完所有人，清空循环集合"); }
+        if (settings[0]) {
+            newCycleSet.add(newName);
+            setCycleSet(newCycleSet);
+            saveArray('rollCallCycleSet', Array.from(newCycleSet));
+            console.log("循环集合人数：", newCycleSet.size, newCycleSet);
+        }
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+        const newHistory = [newName, ...history];
+        setHistory(newHistory);
+        saveArray('rollCallHistory', newHistory);
+
+        setName(newName);
+    }
+    function handleSettingsChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const backupedSettings = [...settings];
+        backupedSettings[Number(e.target.getAttribute('data-setting-number'))] = e.target.checked;
+        setSettings(backupedSettings);
+        saveArray('rollCallSettings', backupedSettings);
+    }
+    useEffect(() => {
+        const loadedHistory = loadArray('rollCallHistory');
+        if (loadedHistory.length > 0) {
+            setHistory(loadedHistory);
+            console.log("已加载历史记录：", loadedHistory);
+        }
+        const loadedNameList = loadArray('rollCallNameList');
+        if (loadedNameList.length > 0) {
+            setNameList(loadedNameList);
+            console.log("已加载名单：", loadedNameList);
+        }
+        const loadedSettings = loadArray('rollCallSettings');
+        if (loadedSettings.length > 0) {
+            setSettings(loadedSettings);
+            console.log("已加载设置：", loadedSettings);
+        }
+        const loadedCycleSet = loadArray('rollCallCycleSet');
+        if (loadedCycleSet.length > 0) {
+            setCycleSet(new Set(loadedCycleSet));
+            console.log("已加载循环集合：", loadedCycleSet);
+        }
+    }, [])
+    return (
+        <>
+            <div className="text-center">
+                <div style={{
+                    fontSize: 96,
+                    height: 160,
+                }}>
+                    {name || "待抽取"}
+                </div>
+                <BigButton onClick={getOne}>随机点名</BigButton>
+                <br />
+                <br />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 400px))', gap: '8px', margin: "0 10px", justifyContent: "center" }}>
+                    <div className="inline-block p-2.5 rounded-md m-2.5 hover:shadow-lg transition-shadow duration-300 bg-[#ffffff]" style={{ padding: 10, border: "1px solid #ccc", borderRadius: 5, margin: 10 }}>
+                        历史记录（{history.length}）
+                        <div className="text-left m-2.5" style={{ height: 200, overflowY: "auto", borderRadius: 5 }}>
+                            {history.map((item, index) => (
+                                <div key={index} className="text-lg hover:bg-blue-100" style={{
+                                    padding: "2px 7px",
+                                }}>
+                                    {item}
+                                </div>
+                            ))}
+                        </div>
+                        <div>
+                            <SmallButton onClick={() => {
+                                const confirmClear = confirm("确定要清除历史记录吗？此操作不可撤销。");
+                                if (!confirmClear) return;
+                                setHistory([]);
+                                saveArray('rollCallHistory', []);
+                            }}>清除</SmallButton>
+                        </div>
+                    </div>
+                    <div className="inline-block p-2.5 rounded-md m-2.5 hover:shadow-lg transition-shadow duration-300 bg-[#ffffff] m-2.5" style={{ padding: 10, border: "1px solid #ccc", borderRadius: 5 }}>
+                        名单（{nameList.length}）
+                        <div className="text-left m-2.5" style={{ height: 200, overflowY: "auto", borderRadius: 5 }}>
+                            {nameList.map((item, index) => (
+                                <div key={index} className="text-lg hover:bg-blue-100" style={{
+                                    padding: "2px 7px",
+                                }}>
+                                    {item}
+                                </div>
+                            ))}
+                        </div>
+                        <div>
+                            <SmallButton onClick={() => {
+                                readTxtFileToList().then((res) => {
+                                    setNameList(res);
+                                    saveArray('rollCallNameList', res);
+                                    setHistory([]);
+                                    saveArray('rollCallHistory', []);
+                                    setCycleSet(new Set());
+                                    saveArray('rollCallCycleSet', []);
+                                }).catch(() => { });
+                            }}>导入</SmallButton>
+                            <SmallButton onClick={() => { exportToTXT(nameList, "NameList") }}>导出</SmallButton>
+                        </div>
+                    </div>
+                    <div className="inline-block p-2.5 rounded-md m-2.5 hover:shadow-lg transition-shadow duration-300 bg-[#ffffff] m-2.5" style={{ padding: 10, border: "1px solid #ccc", borderRadius: 5 }}>
+                        设置
+                        <div className="p-2.5">
+                            <label className="flex items-center justify-start select-none"><input type="checkbox" className="form-checkbox accent-blue-600 h-4 w-4" onChange={handleSettingsChange} checked={settings[0]} data-setting-number={0} />&nbsp;尽量减少重复<span className="text-xs text-gray-500 lowercase">抽完所有人后再循环，中途不重复</span></label>
+                        </div>
+                        <SmallButton onClick={() => {
+                            const confirmClear = confirm("确定要清除循环集合吗？此操作不可撤销。");
+                            if (!confirmClear) return;
+                            setCycleSet(new Set());
+                            saveArray('rollCallCycleSet', []);
+                        }}>清除循环集合（{cycleSet.size}）</SmallButton>
+                    </div>
+                    <div className="inline-block p-2.5 rounded-md m-2.5 hover:shadow-lg transition-shadow duration-300 bg-[#ffffff] m-2.5" style={{ padding: 10, border: "1px solid #ccc", borderRadius: 5 }}>
+                        使用说明
+
+                        <div className="text-sm text-gray-500 lowercase text-left">
+                            1.导入名单：创建一个 txt 文件，每行一个名字，导入后会覆盖当前名单，并清除保存的数据。<br />
+                            2.循环集合：勾选“尽量减少重复”后，每次点名会将已点名的人加入循环集合，直到所有人都被点名过一次。<br />
+                            3.历史记录：每次点名后，点名结果会添加到历史记录中，条数无上限。<br />
+                            4.数据存储：点名结果、名单、循环集合和设置都会存储在浏览器的 LocalStorage 中，刷新页面不会丢失，但清除浏览器数据或使用隐私模式会导致数据丢失或不可见。
+                        </div>
+                    </div>
+                </div>
+                <div className="h-[120px]"></div>
+                <div className="fixed bottom-[50px] w-full">
+                    <BigButton onClick={getOne}>随机点名</BigButton>
+                </div>
+            </div>
+        </>
+    )
+}
+const defaultNameList = [
+    "张三",
+    "李四",
+    "王五",
+    "赵六",
+    "钱七",
+    "孙八",
+    "周九",
+    "吴十",
+    "郑十一",
+    "冯十二",
+    "陈十三",
+    "褚十四",
+    "卫十五",
+    "蒋十六",
+    "沈十七",
+    "韩十八",
+    "杨十九",
+    "朱二十",
+    "秦二十一",
+    "尤二十二",
+]
+const BigButton = (props: { onClick: () => void; children: React.ReactNode; }) => {
+    return (
+        <div onClick={props.onClick} className="inline-block hover:shadow-lg hover:shadow-black/20 transition-shadow duration-300" style={{
+            padding: "10px 20px",
+            backgroundColor: "#0070f3",
+            color: "#fff",
+            borderRadius: "5px",
+            cursor: "pointer",
+            fontSize: 24,
+            userSelect: "none",
+            margin: "0 5px",
+        }}>
+            {props.children}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+    )
+}
+const SmallButton = (props: { onClick: () => void; children: React.ReactNode; }) => {
+    return (
+        <div onClick={props.onClick} className="inline-block hover:shadow-lg hover:shadow-black/20 transition-shadow duration-300" style={{
+            padding: "5px 10px",
+            backgroundColor: "#0070f3",
+            color: "#fff",
+            borderRadius: "5px",
+            cursor: "pointer",
+            fontSize: 18,
+            userSelect: "none",
+            margin: "0 5px",
+        }}>
+            {props.children}
+        </div>
+    )
+}
+
+const exportToTXT = (list: string[], fileName: string) => {
+    const textContent = list.join('\n');
+    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${fileName}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+/**
+ * 打开文件选择框，读取txt文件并返回内容数组（每行一个元素）
+ * @returns - 包含文件内容的数组Promise
+ */
+const readTxtFileToList = (): Promise<string[]> => {
+    return new Promise((resolve, reject) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.txt';
+        input.style.display = 'none';
+
+        document.body.appendChild(input);
+
+        input.onchange = (e: Event) => {
+            const target = e.target as HTMLInputElement;
+            const file = target.files?.[0];
+
+            if (!file) {
+                reject(new Error('未选择文件'));
+                return;
+            }
+
+            if (file.type !== 'text/plain' && !file.name.endsWith('.txt')) {
+                reject(new Error('请选择txt格式的文件'));
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (event: ProgressEvent<FileReader>) => {
+                try {
+                    const content = event.target?.result as string;
+                    const list = content.split(/\r?\n/).filter(item => item.trim() !== '');
+                    resolve(list);
+                } catch (error) {
+                    reject(new Error(`文件解析错误: ${(error as Error).message}`));
+                } finally {
+                    document.body.removeChild(input);
+                }
+            };
+
+            reader.onerror = () => {
+                reject(new Error(`文件读取失败: ${reader.error?.message || '未知错误'}`));
+                document.body.removeChild(input);
+            };
+
+            reader.readAsText(file, 'utf-8');
+        };
+
+        input.click();
+
+        setTimeout(() => {
+            if (!input.files?.length) {
+                reject(new Error('操作已取消'));
+                document.body.removeChild(input);
+            }
+        }, 30000);
+    });
+}
+
+/**
+ * 存储数组到localStorage
+ * @param key - 存储键名
+ * @param array - 要存储的数组
+ */
+const saveArray = (key: string, array: any[]) => {
+    try {
+        localStorage.setItem(key, JSON.stringify(array));
+    } catch (error) {
+        console.error(`存储失败:`, error);
+    }
+}
+
+/**
+* 从localStorage读取数组
+* @param key - 存储键名
+* @returns 存储的数组，若失败则返回空数组
+*/
+const loadArray = (key: string): any[] => {
+    try {
+        const stored = localStorage.getItem(key);
+        return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+        console.error(`读取失败:`, error);
+        return [];
+    }
 }
