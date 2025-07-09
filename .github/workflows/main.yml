@@ -1,4 +1,4 @@
-name: Deploy Nuxt to MicroK8s
+name: Deploy Next to MicroK8s
 
 on:
   workflow_dispatch:
