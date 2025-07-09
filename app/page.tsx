@@ -112,7 +112,7 @@ export default function Home() {
                                 }).catch(() => { });
                             }}>导入</SmallButton>
                             <SmallButton onClick={() => {
-                                const editedArray = editStringArray(nameList, "名单");
+                                const editedArray = editStringArrayByInput(nameList, ",", "请输入新的名单（使用英文逗号分隔）：");
                                 if (editedArray !== null && editedArray.length > 0) {
                                     setNameList(editedArray);
                                     saveArray('rollCallNameList', editedArray);
@@ -142,7 +142,7 @@ export default function Home() {
 
                         <div className="text-sm text-gray-500 text-left">
                             1.导入名单：创建一个 txt 文件，每行一个名字，导入后会覆盖当前名单，并清除保存的数据。<br />
-                            2.编辑名单：可以直接编辑当前名单，支持 JSON 格式的字符串数组。<br />
+                            2.编辑名单：可以直接编辑当前名单，以逗号分隔的字符串数组形式输入。<br />
                             3.循环集合：勾选“尽量减少重复”后，每次点名会将已点名的人加入循环集合，直到所有人都被点名过一次。<br />
                             4.历史记录：每次点名后，点名结果会添加到历史记录中，条数无上限。<br />
                             5.数据存储：点名结果、名单、循环集合和设置都会存储在浏览器的 LocalStorage 中，刷新页面不会丢失，但清除浏览器数据或使用隐私模式会导致数据丢失或不可见。
@@ -313,43 +313,31 @@ const loadArray = (key: string): any[] => {
 }
 
 /**
- * 使用 prompt 编辑字符串数组
- * @param initialArray 初始字符串数组
- * @param arrayName 数组名称（用于提示文本）
- * @returns 更新后的字符串数组或 null（用户取消）
+ * 通过用户输入字符串创建或编辑字符串数组
+ * @param initialValue 初始值（可选）
+ * @param separator 分隔符，默认为英文逗号
+ * @returns 分割后的字符串数组或 null（用户取消）
  */
-const editStringArray = (initialArray: string[] = [], arrayName = "字符串数组"): string[] | null => {
-    try {
-        const formattedJson = JSON.stringify(initialArray, null, 2);
+const editStringArrayByInput = (
+    initialValue: string[] = [],
+    separator: string = ',',
+    promptText: string = '请输入字符串（使用英文逗号分隔）：'
+): string[] | null => {
+    const initialInput = initialValue.join(separator);
 
-        const userInput = prompt(`编辑 ${arrayName}（JSON 格式）：`, formattedJson);
+    const userInput = prompt(promptText, initialInput);
 
-        if (userInput === null) {
-            return null;
-        }
-
-        const trimmedInput = userInput.trim();
-        if (!trimmedInput) {
-            throw new Error("输入不能为空");
-        }
-
-        const parsedValue = JSON.parse(trimmedInput);
-
-        if (!Array.isArray(parsedValue)) {
-            throw new Error(`输入内容不是有效的数组`);
-        }
-
-        if (!parsedValue.every(item => typeof item === "string")) {
-            throw new Error("数组中包含非字符串元素");
-        }
-
-        return parsedValue as string[];
-    } catch (error) {
-        const errorMessage = error instanceof Error
-            ? error.message
-            : "发生了未知错误";
-
-        alert(`编辑失败：${errorMessage}`);
-        return initialArray;
+    if (userInput === null) {
+        return null;
     }
+
+    const trimmedInput = userInput.trim();
+    if (!trimmedInput) {
+        return [];
+    }
+
+    return trimmedInput
+        .split(separator)
+        .map(item => item.trim())
+        .filter(item => item.length > 0);
 }
