@@ -111,6 +111,17 @@ export default function Home() {
                                     saveArray('rollCallCycleSet', []);
                                 }).catch(() => { });
                             }}>导入</SmallButton>
+                            <SmallButton onClick={() => {
+                                const editedArray = editStringArray(nameList, "名单");
+                                if (editedArray !== null && editedArray.length > 0) {
+                                    setNameList(editedArray);
+                                    saveArray('rollCallNameList', editedArray);
+                                    setHistory([]);
+                                    saveArray('rollCallHistory', []);
+                                    setCycleSet(new Set());
+                                    saveArray('rollCallCycleSet', []);
+                                }
+                            }}>编辑</SmallButton>
                             <SmallButton onClick={() => { exportToTXT(nameList, "NameList") }}>导出</SmallButton>
                         </div>
                     </div>
@@ -297,5 +308,47 @@ const loadArray = (key: string): any[] => {
     } catch (error) {
         console.error(`读取失败:`, error);
         return [];
+    }
+}
+
+/**
+ * 使用 prompt 编辑字符串数组
+ * @param initialArray 初始字符串数组
+ * @param arrayName 数组名称（用于提示文本）
+ * @returns 更新后的字符串数组或 null（用户取消）
+ */
+const editStringArray = (initialArray: string[] = [], arrayName = "字符串数组"): string[] | null => {
+    try {
+        const formattedJson = JSON.stringify(initialArray, null, 2);
+
+        const userInput = prompt(`编辑 ${arrayName}（JSON 格式）：`, formattedJson);
+
+        if (userInput === null) {
+            return null;
+        }
+
+        const trimmedInput = userInput.trim();
+        if (!trimmedInput) {
+            throw new Error("输入不能为空");
+        }
+
+        const parsedValue = JSON.parse(trimmedInput);
+
+        if (!Array.isArray(parsedValue)) {
+            throw new Error(`输入内容不是有效的数组`);
+        }
+
+        if (!parsedValue.every(item => typeof item === "string")) {
+            throw new Error("数组中包含非字符串元素");
+        }
+
+        return parsedValue as string[];
+    } catch (error) {
+        const errorMessage = error instanceof Error
+            ? error.message
+            : "发生了未知错误";
+
+        alert(`编辑失败：${errorMessage}`);
+        return initialArray;
     }
 }
