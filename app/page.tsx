@@ -117,7 +117,7 @@ export default function Home() {
                     <div className="inline-block p-2.5 rounded-md m-2.5 hover:shadow-lg transition-shadow duration-300 bg-[#ffffff] m-2.5" style={{ padding: 10, border: "1px solid #ccc", borderRadius: 5 }}>
                         设置
                         <div className="p-2.5">
-                            <label className="flex items-center justify-start select-none"><input type="checkbox" className="form-checkbox accent-blue-600 h-4 w-4" onChange={handleSettingsChange} checked={settings[0]} data-setting-number={0} />&nbsp;尽量减少重复<span className="text-xs text-gray-500 lowercase">抽完所有人后再循环，中途不重复</span></label>
+                            <label className="flex items-center justify-start select-none"><input type="checkbox" className="form-checkbox accent-blue-600 h-4 w-4" onChange={handleSettingsChange} checked={settings[0]} data-setting-number={0} />&nbsp;尽量减少重复<span className="text-xs text-gray-500">抽完所有人后再循环，中途不重复</span></label>
                         </div>
                         <SmallButton onClick={() => {
                             const confirmClear = confirm("确定要清除循环集合吗？此操作不可撤销。");
@@ -129,7 +129,7 @@ export default function Home() {
                     <div className="inline-block p-2.5 rounded-md m-2.5 hover:shadow-lg transition-shadow duration-300 bg-[#ffffff] m-2.5" style={{ padding: 10, border: "1px solid #ccc", borderRadius: 5 }}>
                         使用说明
 
-                        <div className="text-sm text-gray-500 lowercase text-left">
+                        <div className="text-sm text-gray-500 text-left">
                             1.导入名单：创建一个 txt 文件，每行一个名字，导入后会覆盖当前名单，并清除保存的数据。<br />
                             2.循环集合：勾选“尽量减少重复”后，每次点名会将已点名的人加入循环集合，直到所有人都被点名过一次。<br />
                             3.历史记录：每次点名后，点名结果会添加到历史记录中，条数无上限。<br />
