@@ -287,12 +287,12 @@ const readTxtFileToList = (): Promise<string[]> => {
 
         input.click();
 
-        setTimeout(() => {
+        /*setTimeout(() => {
             if (!input.files?.length) {
                 reject(new Error('操作已取消'));
                 document.body.removeChild(input);
             }
-        }, 30000);
+        }, 30000);*/
     });
 }
 
