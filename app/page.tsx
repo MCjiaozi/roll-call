@@ -1,11 +1,17 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import PromptBox, { PromptBoxProps } from '@/components/prompt-box';
+import { BigButton, SmallButton } from '@/components/buttons';
+import TextArea from '@/app/textarea';
 export default function Home() {
     const [name, setName] = useState<string>("");
     const [history, setHistory] = useState<string[]>([]);
     const [nameList, setNameList] = useState<string[]>(defaultNameList);
     const [cycleSet, setCycleSet] = useState<Set<string>>(new Set());
     const [settings, setSettings] = useState<(boolean)[]>([true]);
+    const [Prompt, setPrompt] = useState<{ ifShow: boolean, props: PromptBoxProps }>({ ifShow: false, props: {} });
+    const inputArrayRef = useRef<string[]>(defaultNameList);
+    const textAreaRef = useRef<{ setValue: (value: string) => void }>(null);
     function getOne() {
         const newName = nameList[Math.floor(Math.random() * nameList.length)];
         const newCycleSet = new Set(cycleSet);
@@ -43,6 +49,7 @@ export default function Home() {
         const loadedNameList = loadArray('rollCallNameList');
         if (loadedNameList.length > 0) {
             setNameList(loadedNameList);
+            inputArrayRef.current = loadedNameList;
             console.log("已加载名单：", loadedNameList);
         }
         const loadedSettings = loadArray('rollCallSettings');
@@ -59,85 +66,113 @@ export default function Home() {
     return (
         <>
             <div className="text-center">
-                <div style={{
-                    fontSize: 96,
-                    height: 160,
-                }}>
+                <div className="text-8xl h-40 items-center flex justify-center font-bold">
                     {name || "待抽取"}
                 </div>
                 <BigButton onClick={getOne}>随机点名</BigButton>
-                <br />
-                <br />
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 400px))', gap: '8px', margin: "0 10px", justifyContent: "center" }}>
-                    <div className="inline-block p-2.5 rounded-md m-2.5 hover:shadow-lg transition-shadow duration-300 bg-[#ffffff]" style={{ padding: 10, border: "1px solid #ccc", borderRadius: 5, margin: 10 }}>
+                <div className="grid gap-2 m-2.5 justify-center grid-cols-[repeat(auto-fit,minmax(200px,400px))]">
+                    <GirdCard>
                         历史记录（{history.length}）
-                        <div className="text-left m-2.5" style={{ height: 200, overflowY: "auto", borderRadius: 5 }}>
-                            {history.map((item, index) => (
-                                <div key={index} className="text-lg hover:bg-blue-100" style={{
-                                    padding: "2px 7px",
-                                }}>
-                                    {item}
-                                </div>
-                            ))}
-                        </div>
+                        <List list={history} />
                         <div>
                             <SmallButton onClick={() => {
-                                const confirmClear = confirm("确定要清除历史记录吗？此操作不可撤销。");
-                                if (!confirmClear) return;
-                                setHistory([]);
-                                saveArray('rollCallHistory', []);
+                                setPrompt({
+                                    ifShow: true, props: {
+                                        title: "清除历史记录", children: <>确定要清除历史记录吗？此操作不可撤销。</>, buttons: [{
+                                            text: "确定", onClick: () => {
+                                                setHistory([]);
+                                                saveArray('rollCallHistory', []);
+                                                setPrompt({ ...Prompt, ifShow: false });
+                                            }, stress: true
+                                        }, {
+                                            text: "取消", onClick: () => {
+                                                setPrompt({ ...Prompt, ifShow: false });
+                                            }, stress: false
+                                        }]
+                                    }
+                                });
                             }}>清除</SmallButton>
                         </div>
-                    </div>
-                    <div className="inline-block p-2.5 rounded-md m-2.5 hover:shadow-lg transition-shadow duration-300 bg-[#ffffff] m-2.5" style={{ padding: 10, border: "1px solid #ccc", borderRadius: 5 }}>
+                    </GirdCard>
+                    <GirdCard>
                         名单（{nameList.length}）
-                        <div className="text-left m-2.5" style={{ height: 200, overflowY: "auto", borderRadius: 5 }}>
-                            {nameList.map((item, index) => (
-                                <div key={index} className="text-lg hover:bg-blue-100" style={{
-                                    padding: "2px 7px",
-                                }}>
-                                    {item}
-                                </div>
-                            ))}
-                        </div>
+                        <List list={nameList} />
                         <div>
                             <SmallButton onClick={() => {
-                                readTxtFileToList().then((res) => {
-                                    setNameList(res);
-                                    saveArray('rollCallNameList', res);
-                                    setHistory([]);
-                                    saveArray('rollCallHistory', []);
-                                    setCycleSet(new Set());
-                                    saveArray('rollCallCycleSet', []);
-                                }).catch(() => { });
-                            }}>导入</SmallButton>
-                            <SmallButton onClick={() => {
-                                const editedArray = editStringArrayByInput(nameList, ",", "请输入新的名单（使用英文逗号分隔）：");
-                                if (editedArray !== null && editedArray.length > 0) {
-                                    setNameList(editedArray);
-                                    saveArray('rollCallNameList', editedArray);
-                                    setHistory([]);
-                                    saveArray('rollCallHistory', []);
-                                    setCycleSet(new Set());
-                                    saveArray('rollCallCycleSet', []);
-                                }
+                                setPrompt({
+                                    ifShow: true, props: {
+                                        title: "编辑名单", children:
+                                            <>
+                                                <div className="grid gap-2 m-2.5 justify-center grid-cols-[repeat(auto-fit,minmax(220px,400px))] text-center">
+                                                    <div>
+                                                        <div className="font-bold">直接编辑</div><div className="text-xs text-gray-500 mb-2 text-center">每行输入一个名字，自动删除空白字符。</div>
+                                                        <div>
+                                                            <TextArea ref={textAreaRef} initialValue={nameList.join("\n")} onChange={(e) => {
+                                                                const editedArray = e.target.value.split("\n").map(item => item.trim()).filter(item => item.length > 0);
+                                                                inputArrayRef.current = editedArray;
+                                                            }} />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold">从文件导入</div>
+                                                        <SmallButton onClick={() => {
+                                                            readTxtFileToList().then((res) => {
+                                                                if (!textAreaRef.current) alert("文本框未加载，请稍后再试。");
+                                                                else {
+                                                                    textAreaRef.current.setValue(res.join("\n"));
+                                                                    inputArrayRef.current = res;
+                                                                }
+                                                            }).catch((e) => { alert("读取文件失败。\n" + e); console.log(e); });
+                                                        }}>从 txt 文件导入</SmallButton>
+                                                    </div>
+                                                </div>
+                                                <div className="text-xs text-gray-500 mb-2 text-center">若新旧名单不同，则自动清除循环集合。</div>
+                                            </>
+                                        , buttons: [{
+                                            text: "保存", onClick: () => {
+                                                if (JSON.stringify(nameList) !== JSON.stringify(inputArrayRef.current)) {
+                                                    setNameList(inputArrayRef.current);
+                                                    saveArray('rollCallNameList', inputArrayRef.current);
+                                                    setCycleSet(new Set());
+                                                    saveArray('rollCallCycleSet', []);
+                                                }
+                                                setPrompt({ ...Prompt, ifShow: false });
+                                            }, stress: true
+                                        }, {
+                                            text: "取消", onClick: () => {
+                                                setPrompt({ ...Prompt, ifShow: false });
+                                            }, stress: false
+                                        }]
+                                    }
+                                });
                             }}>编辑</SmallButton>
                             <SmallButton onClick={() => { exportToTXT(nameList, "NameList") }}>导出</SmallButton>
                         </div>
-                    </div>
-                    <div className="inline-block p-2.5 rounded-md m-2.5 hover:shadow-lg transition-shadow duration-300 bg-[#ffffff] m-2.5" style={{ padding: 10, border: "1px solid #ccc", borderRadius: 5 }}>
+                    </GirdCard>
+                    <GirdCard>
                         设置
                         <div className="p-2.5">
-                            <label className="flex items-center justify-start select-none"><input type="checkbox" className="form-checkbox accent-blue-600 h-4 w-4" onChange={handleSettingsChange} checked={settings[0]} data-setting-number={0} />&nbsp;尽量减少重复<span className="text-xs text-gray-500">抽完所有人后再循环，中途不重复</span></label>
+                            <label className="flex items-center justify-start select-none text-left"><input type="checkbox" className="form-checkbox accent-blue-600 h-4 w-4" onChange={handleSettingsChange} checked={settings[0]} data-setting-number={0} />&nbsp;<span>尽量减少重复<span className="text-xs text-gray-500">抽完所有人后再循环，中途不重复</span></span></label>
                         </div>
                         <SmallButton onClick={() => {
-                            const confirmClear = confirm("确定要清除循环集合吗？此操作不可撤销。");
-                            if (!confirmClear) return;
-                            setCycleSet(new Set());
-                            saveArray('rollCallCycleSet', []);
+                            setPrompt({
+                                ifShow: true, props: {
+                                    title: "清除循环集合", children: <>确定要清除循环集合吗？此操作不可撤销。</>, buttons: [{
+                                        text: "确定", onClick: () => {
+                                            setCycleSet(new Set());
+                                            saveArray('rollCallCycleSet', []);
+                                            setPrompt({ ...Prompt, ifShow: false });
+                                        }, stress: true
+                                    }, {
+                                        text: "取消", onClick: () => {
+                                            setPrompt({ ...Prompt, ifShow: false });
+                                        }, stress: false
+                                    }]
+                                }
+                            });
                         }}>清除循环集合（{cycleSet.size}）</SmallButton>
-                    </div>
-                    <div className="inline-block p-2.5 rounded-md m-2.5 hover:shadow-lg transition-shadow duration-300 bg-[#ffffff] m-2.5" style={{ padding: 10, border: "1px solid #ccc", borderRadius: 5 }}>
+                    </GirdCard>
+                    <GirdCard>
                         使用说明
 
                         <div className="text-sm text-gray-500 text-left">
@@ -147,10 +182,18 @@ export default function Home() {
                             4.历史记录：每次点名后，点名结果会添加到历史记录中，条数无上限。<br />
                             5.数据存储：点名结果、名单、循环集合和设置都会存储在浏览器的 LocalStorage 中，刷新页面不会丢失，但清除浏览器数据或使用隐私模式会导致数据丢失或不可见。
                         </div>
-                    </div>
+                    </GirdCard>
                 </div>
+
+                {
+                    Prompt.ifShow && (
+                        <>
+                            <PromptBox title={Prompt.props.title} buttons={Prompt.props.buttons}>{Prompt.props.children}</PromptBox>
+                        </>
+                    )
+                }
                 <div className="h-[120px]"></div>
-                <div className="fixed bottom-[50px] w-full">
+                <div className="fixed bottom-[50px] left-1/2 transform -translate-x-1/2 w-[146px]">
                     <BigButton onClick={getOne}>随机点名</BigButton>
                 </div>
             </div>
@@ -179,38 +222,7 @@ const defaultNameList = [
     "秦二十一",
     "尤二十二",
 ]
-const BigButton = (props: { onClick: () => void; children: React.ReactNode; }) => {
-    return (
-        <div onClick={props.onClick} className="inline-block hover:shadow-lg hover:shadow-black/20 transition-shadow duration-300" style={{
-            padding: "10px 20px",
-            backgroundColor: "#0070f3",
-            color: "#fff",
-            borderRadius: "5px",
-            cursor: "pointer",
-            fontSize: 24,
-            userSelect: "none",
-            margin: "0 5px",
-        }}>
-            {props.children}
-        </div>
-    )
-}
-const SmallButton = (props: { onClick: () => void; children: React.ReactNode; }) => {
-    return (
-        <div onClick={props.onClick} className="inline-block hover:shadow-lg hover:shadow-black/20 transition-shadow duration-300" style={{
-            padding: "5px 10px",
-            backgroundColor: "#0070f3",
-            color: "#fff",
-            borderRadius: "5px",
-            cursor: "pointer",
-            fontSize: 18,
-            userSelect: "none",
-            margin: "0 5px",
-        }}>
-            {props.children}
-        </div>
-    )
-}
+
 
 const exportToTXT = (list: string[], fileName: string) => {
     const textContent = list.join('\n');
@@ -280,7 +292,7 @@ const readTxtFileToList = (): Promise<string[]> => {
                 reject(new Error('操作已取消'));
                 document.body.removeChild(input);
             }
-        }, 30000);
+        }, 3000);
     });
 }
 
@@ -340,4 +352,22 @@ const editStringArrayByInput = (
         .split(separator)
         .map(item => item.trim())
         .filter(item => item.length > 0);
+}
+const GirdCard = ({ children }: { children: React.ReactNode }) => {
+    return (
+        <div className="inline-block p-2.5 rounded-md m-2.5 hover:shadow-lg transition-shadow duration-300 bg-[#ffffff] border border-gray-300">
+            {children}
+        </div>
+    )
+}
+const List = ({ list }: { list: string[] }) => {
+    return (
+        <div className="text-left m-2.5 h-[200px] overflow-y-auto rounded-md">
+            {list.map((item, index) => (
+                <div key={index} className="text-lg hover:bg-blue-100 px-[7px] py-[2px]">
+                    {item}
+                </div>
+            ))}
+        </div>
+    )
 }
