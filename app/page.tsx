@@ -292,7 +292,7 @@ const readTxtFileToList = (): Promise<string[]> => {
                 reject(new Error('操作已取消'));
                 document.body.removeChild(input);
             }
-        }, 3000);
+        }, 30000);
     });
 }
 
