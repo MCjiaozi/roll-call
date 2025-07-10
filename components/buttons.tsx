@@ -8,7 +8,7 @@ const BigButton = ({ onClick = () => { }, children = (<></>), stress = true }: {
             cursor: "pointer",
             fontSize: 24,
             userSelect: "none",
-            margin: "0 5px",
+            margin: "5px",
             border: stress ? "none" : "1px solid #0070f3",
         }}>
             {children}
@@ -25,7 +25,7 @@ const SmallButton = ({ onClick = () => { }, children = (<></>), stress = true }:
             cursor: "pointer",
             fontSize: 18,
             userSelect: "none",
-            margin: "0 5px",
+            margin: "5px",
             border: stress ? "none" : "1px solid #0070f3",
         }}>
             {children}

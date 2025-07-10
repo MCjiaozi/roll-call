@@ -78,7 +78,7 @@ export default function Home() {
                             <SmallButton onClick={() => {
                                 setPrompt({
                                     ifShow: true, props: {
-                                        title: "清除历史记录", children: <>确定要清除历史记录吗？此操作不可撤销。</>, buttons: [{
+                                        title: "清除历史记录", children: <><div className="min-w-[260px]">确定要清除历史记录吗？此操作不可撤销。</div></>, buttons: [{
                                             text: "确定", onClick: () => {
                                                 setHistory([]);
                                                 saveArray('rollCallHistory', []);
@@ -103,7 +103,7 @@ export default function Home() {
                                     ifShow: true, props: {
                                         title: "编辑名单", children:
                                             <>
-                                                <div className="grid gap-2 m-2.5 justify-center grid-cols-[repeat(auto-fit,minmax(220px,400px))] text-center">
+                                                <div className="grid gap-2 m-2.5 justify-center grid-cols-[repeat(auto-fit,minmax(260px,400px))] text-center">
                                                     <div>
                                                         <div className="font-bold">直接编辑</div><div className="text-xs text-gray-500 mb-2 text-center">每行输入一个名字，自动删除空白字符。</div>
                                                         <div>
@@ -117,13 +117,26 @@ export default function Home() {
                                                         <div className="font-bold">从文件导入</div>
                                                         <SmallButton onClick={() => {
                                                             readTxtFileToList().then((res) => {
-                                                                if (!textAreaRef.current) alert("文本框未加载，请稍后再试。");
-                                                                else {
+                                                                if (textAreaRef.current) {
                                                                     textAreaRef.current.setValue(res.join("\n"));
                                                                     inputArrayRef.current = res;
                                                                 }
-                                                            }).catch((e) => { alert("读取文件失败。\n" + e); console.log(e); });
-                                                        }}>从 txt 文件导入</SmallButton>
+                                                            }).catch((e) => { console.log("读取文件失败。\n", e); });
+                                                        }}>纯文本(.txt)</SmallButton>
+                                                        <SmallButton onClick={() => {
+                                                            readExcelFileToList().then((res) => {
+                                                                if (textAreaRef.current) {
+                                                                    textAreaRef.current.setValue(res.join("\n"));
+                                                                    inputArrayRef.current = res;
+                                                                }
+                                                            }).catch((e) => { console.log("读取文件失败。\n", e); });
+                                                        }}>Excel(.xlsx)</SmallButton>
+                                                        <div className="text-xs text-gray-500 mb-2 text-center">纯文本：一行一个名字，使用UTF-8编码。<br />Excel：读取第一个工作表的第一列数据。</div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold">导出到文件</div>
+                                                        <SmallButton onClick={() => { exportToTXT(nameList, "NameList") }}>纯文本(.txt)</SmallButton>
+                                                        <SmallButton onClick={() => { exportToExcel(nameList, "NameList") }}>Excel(.xlsx)</SmallButton>
                                                     </div>
                                                 </div>
                                                 <div className="text-xs text-gray-500 mb-2 text-center">若新旧名单不同，则自动清除循环集合。</div>
@@ -146,7 +159,6 @@ export default function Home() {
                                     }
                                 });
                             }}>编辑</SmallButton>
-                            <SmallButton onClick={() => { exportToTXT(nameList, "NameList") }}>导出</SmallButton>
                         </div>
                     </GirdCard>
                     <GirdCard>
@@ -157,7 +169,7 @@ export default function Home() {
                         <SmallButton onClick={() => {
                             setPrompt({
                                 ifShow: true, props: {
-                                    title: "清除循环集合", children: <>确定要清除循环集合吗？此操作不可撤销。</>, buttons: [{
+                                    title: "清除循环集合", children: <><div className="min-w-[260px]">确定要清除循环集合吗？此操作不可撤销。</div></>, buttons: [{
                                         text: "确定", onClick: () => {
                                             setCycleSet(new Set());
                                             saveArray('rollCallCycleSet', []);
@@ -176,11 +188,9 @@ export default function Home() {
                         使用说明
 
                         <div className="text-sm text-gray-500 text-left">
-                            1.导入名单：创建一个 txt 文件，每行一个名字，导入后会覆盖当前名单，并清除保存的数据。<br />
-                            2.编辑名单：可以直接编辑当前名单，以英文逗号分隔的字符串数组形式输入，自动删除空白字符。<br />
-                            3.循环集合：勾选“尽量减少重复”后，每次点名会将已点名的人加入循环集合，直到所有人都被点名过一次。<br />
-                            4.历史记录：每次点名后，点名结果会添加到历史记录中，条数无上限。<br />
-                            5.数据存储：点名结果、名单、循环集合和设置都会存储在浏览器的 LocalStorage 中，刷新页面不会丢失，但清除浏览器数据或使用隐私模式会导致数据丢失或不可见。
+                            1.点名方式：点击“随机点名”按钮后，从名单中随机抽取一人。<br />
+                            2.循环集合：勾选“尽量减少重复”后，每次点名会将已点名的人加入循环集合，直到所有人都被点名过一次。<br />
+                            3.数据存储：点名结果、名单、循环集合和设置都会存储在浏览器的 LocalStorage 中，刷新页面不会丢失，但清除浏览器数据或使用隐私模式会导致数据丢失或不可见。
                         </div>
                     </GirdCard>
                 </div>
@@ -371,3 +381,86 @@ const List = ({ list }: { list: string[] }) => {
         </div>
     )
 }
+
+import * as XLSX from 'xlsx'; // 引入xlsx库
+
+/**
+ * 从Excel文件导入名单（支持.xlsx格式）
+ * @returns 解析后的名单数组Promise
+ */
+const readExcelFileToList = (): Promise<string[]> => {
+    return new Promise((resolve, reject) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.xlsx, .xls';
+        input.style.display = 'none';
+        document.body.appendChild(input);
+
+        input.onchange = (e: Event) => {
+            const target = e.target as HTMLInputElement;
+            const file = target.files?.[0];
+            if (!file) {
+                reject(new Error('未选择文件'));
+                document.body.removeChild(input);
+                return;
+            }
+
+            if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+                reject(new Error('请选择Excel格式文件（.xlsx或.xls）'));
+                document.body.removeChild(input);
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (event: ProgressEvent<FileReader>) => {
+                try {
+                    const data = new Uint8Array(event.target?.result as ArrayBuffer);
+                    const workbook = XLSX.read(data, { type: 'array' });
+
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    const nameList: string[] = [];
+                    (jsonData as any[][]).forEach((row) => {
+                        const name = row[0]?.toString().trim();
+                        if (name && name.length > 0) {
+                            nameList.push(name);
+                        }
+                    });
+
+                    resolve(nameList);
+                } catch (error) {
+                    reject(new Error(`Excel解析错误: ${(error as Error).message}`));
+                } finally {
+                    document.body.removeChild(input);
+                }
+            };
+
+            reader.onerror = () => {
+                reject(new Error(`文件读取失败: ${reader.error?.message || '未知错误'}`));
+                document.body.removeChild(input);
+            };
+
+            reader.readAsArrayBuffer(file);
+        };
+
+        input.click();
+    });
+};
+
+/**
+ * 导出名单到Excel文件
+ * @param list 要导出的名单数组
+ * @param fileName 导出的文件名（不含后缀）
+ */
+const exportToExcel = (list: string[], fileName: string) => {
+    const wsData = list.map((name) => [name]);
+
+    const worksheet = XLSX.utils.aoa_to_sheet(wsData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, '名单');
+
+    XLSX.writeFile(workbook, `${fileName}.xlsx`);
+};
