@@ -49,8 +49,8 @@ export default function Home() {
         }
         const loadedNameList = loadArray('rollCallNameList');
         if (loadedNameList.length > 0) {
-            setNameList(loadedNameList);
             const nonRepeatedList = Array.from(new Set(loadedNameList));
+            setNameList(nonRepeatedList);
             inputArrayRef.current = nonRepeatedList;
             console.log("已加载名单：", nonRepeatedList);
         }
