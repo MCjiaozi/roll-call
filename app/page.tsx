@@ -228,6 +228,7 @@ export default function Home() {
                                 id: 4, props: {
                                     title: "清除所有数据", children: <><div className="min-w-[260px]">确定要清除所有数据吗？此操作不可撤销。<br />清除所有数据后，页面将恢复为初始数据，但此时数据未保存在 LocalStorage 中。</div></>, buttons: [{
                                         text: "确定", onClick: () => {
+                                            setName("");
                                             setCycleSet(new Set());
                                             localStorage.removeItem('rollCallCycleSet');
                                             setHistory([]);
