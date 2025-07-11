@@ -10,9 +10,10 @@ export default function Home() {
     const [nameList, setNameList] = useState<string[]>(defaultNameList);
     const [cycleSet, setCycleSet] = useState<Set<string>>(new Set());
     const [settings, setSettings] = useState<(boolean)[]>([true]);
-    const [Prompt, setPrompt] = useState<{ ifShow: boolean, props: PromptBoxProps }>({ ifShow: false, props: {} });
     const inputArrayRef = useRef<string[]>(defaultNameList);
     const textAreaRef = useRef<{ setValue: (value: string) => void }>(null);
+    const [prompts, setPrompts] = useState<{ id: number, props: PromptBoxProps }[]>([]);
+    const noticeBoxID = useRef<number>(50);
     function getOne() {
         const newName = nameList[Math.floor(Math.random() * nameList.length)];
         const newCycleSet = new Set(cycleSet);
@@ -25,13 +26,13 @@ export default function Home() {
         if (settings[0]) {
             newCycleSet.add(newName);
             setCycleSet(newCycleSet);
-            saveArray('rollCallCycleSet', Array.from(newCycleSet));
+            saveData('rollCallCycleSet', Array.from(newCycleSet));
             console.log("循环集合人数：", newCycleSet.size, newCycleSet);
         }
 
         const newHistory = [newName, ...history];
         setHistory(newHistory);
-        saveArray('rollCallHistory', newHistory);
+        saveData('rollCallHistory', newHistory);
 
         setName(newName);
     }
@@ -39,27 +40,56 @@ export default function Home() {
         const backupedSettings = [...settings];
         backupedSettings[Number(e.target.getAttribute('data-setting-number'))] = e.target.checked;
         setSettings(backupedSettings);
-        saveArray('rollCallSettings', backupedSettings);
+        saveData('rollCallSettings', backupedSettings);
+    }
+    function showNotice(title: string = "提示", children: React.ReactNode = "提示内容") {
+        const tmpID = noticeBoxID.current;
+        noticeBoxID.current++;
+        setPrompts(prev => [...prev.filter(item => item.id !== tmpID), {
+            id: tmpID, props: {
+                children: children,
+                title: title,
+                zIndex: 20,
+                buttons: [{
+                    text: "确定", onClick: () => {
+                        setPrompts(prev => prev.filter(item => item.id !== tmpID));
+                    }, stress: true
+                }],
+            },
+        }]);
+    }
+    function saveData(key: string, array: any[]) {
+        saveArray(key, array).catch((e) => {
+            showNotice("存储失败", e.message);
+        })
+    }
+    function loadData(key: string): any[] {
+        const res: (any[] | Error) = loadArray(key);
+        if (res instanceof Error) {
+            showNotice("读取失败", res.message);
+            return [];
+        }
+        else return res;
     }
     useEffect(() => {
-        const loadedHistory = loadArray('rollCallHistory');
+        const loadedHistory = loadData('rollCallHistory');
         if (loadedHistory.length > 0) {
             setHistory(loadedHistory);
             console.log("已加载历史记录：", loadedHistory);
         }
-        const loadedNameList = loadArray('rollCallNameList');
+        const loadedNameList = loadData('rollCallNameList');
         if (loadedNameList.length > 0) {
             const nonRepeatedList = Array.from(new Set(loadedNameList));
             setNameList(nonRepeatedList);
             inputArrayRef.current = nonRepeatedList;
             console.log("已加载名单：", nonRepeatedList);
         }
-        const loadedSettings = loadArray('rollCallSettings');
+        const loadedSettings = loadData('rollCallSettings');
         if (loadedSettings.length > 0) {
             setSettings(loadedSettings);
             console.log("已加载设置：", loadedSettings);
         }
-        const loadedCycleSet = loadArray('rollCallCycleSet');
+        const loadedCycleSet = loadData('rollCallCycleSet');
         if (loadedCycleSet.length > 0) {
             setCycleSet(new Set(loadedCycleSet));
             console.log("已加载循环集合：", loadedCycleSet);
@@ -78,21 +108,21 @@ export default function Home() {
                         <List list={history} />
                         <div>
                             <SmallButton onClick={() => {
-                                setPrompt({
-                                    ifShow: true, props: {
+                                setPrompts(prev => [...prev.filter(item => item.id !== 2), {
+                                    id: 2, props: {
                                         title: "清除历史记录", children: <><div className="min-w-[260px]">确定要清除历史记录吗？此操作不可撤销。</div></>, buttons: [{
                                             text: "确定", onClick: () => {
                                                 setHistory([]);
-                                                saveArray('rollCallHistory', []);
-                                                setPrompt({ ...Prompt, ifShow: false });
+                                                saveData('rollCallHistory', []);
+                                                setPrompts(prev => prev.filter(item => item.id !== 2));
                                             }, stress: true
                                         }, {
                                             text: "取消", onClick: () => {
-                                                setPrompt({ ...Prompt, ifShow: false });
+                                                setPrompts(prev => prev.filter(item => item.id !== 2));
                                             }, stress: false
                                         }]
                                     }
-                                });
+                                }]);
                             }}>清除</SmallButton>
                         </div>
                     </GirdCard>
@@ -101,8 +131,9 @@ export default function Home() {
                         <List list={nameList} />
                         <div>
                             <SmallButton onClick={() => {
-                                setPrompt({
-                                    ifShow: true, props: {
+                                setPrompts(prev => [...prev.filter(item => item.id !== 1), {
+                                    id: 1,
+                                    props: {
                                         title: "编辑名单", children:
                                             <>
                                                 <div className="grid gap-2 m-2.5 justify-center grid-cols-[repeat(auto-fit,minmax(260px,400px))] text-center">
@@ -119,19 +150,25 @@ export default function Home() {
                                                         <div className="font-bold">从文件导入</div>
                                                         <SmallButton onClick={() => {
                                                             readTxtFileToList().then((res) => {
-                                                                if (textAreaRef.current) {
+                                                                if (textAreaRef.current?.setValue) {
                                                                     textAreaRef.current.setValue(res.join("\n"));
                                                                     inputArrayRef.current = res;
                                                                 }
-                                                            }).catch((e) => { console.log("读取文件失败。\n", e); });
+                                                            }).catch((e) => {
+                                                                console.log("读取文件失败。\n", e);
+                                                                showNotice("读取文件失败", e.message);
+                                                            });
                                                         }}>纯文本(.txt)</SmallButton>
                                                         <SmallButton onClick={() => {
                                                             readExcelFileToList().then((res) => {
-                                                                if (textAreaRef.current) {
+                                                                if (textAreaRef.current?.setValue) {
                                                                     textAreaRef.current.setValue(res.join("\n"));
                                                                     inputArrayRef.current = res;
                                                                 }
-                                                            }).catch((e) => { console.log("读取文件失败。\n", e); });
+                                                            }).catch((e) => {
+                                                                console.log("读取文件失败。\n", e);
+                                                                showNotice("读取文件失败", e.message);
+                                                            });
                                                         }}>Excel(.xlsx)</SmallButton>
                                                         <div className="text-xs text-gray-500 mb-2 text-center">纯文本：一行一个名字，使用UTF-8编码。<br />Excel：读取第一个工作表的第一列数据。</div>
                                                     </div>
@@ -148,19 +185,19 @@ export default function Home() {
                                                 const nonRepeatedList = Array.from(new Set(inputArrayRef.current));
                                                 if (JSON.stringify(nameList) !== JSON.stringify(nonRepeatedList)) {
                                                     setNameList(nonRepeatedList);
-                                                    saveArray('rollCallNameList', nonRepeatedList);
+                                                    saveData('rollCallNameList', nonRepeatedList);
                                                     setCycleSet(new Set());
-                                                    saveArray('rollCallCycleSet', []);
+                                                    saveData('rollCallCycleSet', []);
                                                 }
-                                                setPrompt({ ...Prompt, ifShow: false });
+                                                setPrompts(prev => prev.filter(item => item.id !== 1));
                                             }, stress: true
                                         }, {
                                             text: "取消", onClick: () => {
-                                                setPrompt({ ...Prompt, ifShow: false });
+                                                setPrompts(prev => prev.filter(item => item.id !== 1));
                                             }, stress: false
                                         }]
                                     }
-                                });
+                                }]);
                             }}>编辑</SmallButton>
                         </div>
                     </GirdCard>
@@ -170,21 +207,21 @@ export default function Home() {
                             <label className="flex items-center justify-start select-none text-left"><input type="checkbox" className="form-checkbox accent-blue-600 h-4 w-4" onChange={handleSettingsChange} checked={settings[0]} data-setting-number={0} />&nbsp;<span>尽量减少重复<span className="text-xs text-gray-500">抽完所有人后再循环，中途不重复</span></span></label>
                         </div>
                         <SmallButton onClick={() => {
-                            setPrompt({
-                                ifShow: true, props: {
+                            setPrompts(prev => [...prev.filter(item => item.id !== 3), {
+                                id: 3, props: {
                                     title: "清除循环集合", children: <><div className="min-w-[260px]">确定要清除循环集合吗？此操作不可撤销。</div></>, buttons: [{
                                         text: "确定", onClick: () => {
                                             setCycleSet(new Set());
-                                            saveArray('rollCallCycleSet', []);
-                                            setPrompt({ ...Prompt, ifShow: false });
+                                            saveData('rollCallCycleSet', []);
+                                            setPrompts(prev => prev.filter(item => item.id !== 3));
                                         }, stress: true
                                     }, {
                                         text: "取消", onClick: () => {
-                                            setPrompt({ ...Prompt, ifShow: false });
+                                            setPrompts(prev => prev.filter(item => item.id !== 3));
                                         }, stress: false
                                     }]
                                 }
-                            });
+                            }]);
                         }}>清除循环集合（{cycleSet.size}）</SmallButton>
                     </GirdCard>
                     <GirdCard>
@@ -198,15 +235,10 @@ export default function Home() {
                         </div>
                     </GirdCard>
                 </div>
-
                 {
-                    Prompt.ifShow && (
-                        <>
-                            <PromptBox title={Prompt.props.title} buttons={Prompt.props.buttons}>{Prompt.props.children}</PromptBox>
-                        </>
-                    )
+                    prompts.map(item => <span key={item.id}><PromptBox {...item.props} /></span>)
                 }
-                <div className="h-[120px]"></div>
+                <div className="h-[120px]" style={{ zIndex: 80 }}></div>
                 <div className="fixed bottom-[50px] left-1/2 transform -translate-x-1/2 w-[146px]">
                     <BigButton onClick={getOne}>随机点名</BigButton>
                 </div>
@@ -269,12 +301,12 @@ const readTxtFileToList = (): Promise<string[]> => {
             const file = target.files?.[0];
 
             if (!file) {
-                reject(new Error('未选择文件'));
+                reject(new Error('未选择文件。'));
                 return;
             }
 
             if (file.type !== 'text/plain' && !file.name.endsWith('.txt')) {
-                reject(new Error('请选择txt格式的文件'));
+                reject(new Error('请选择txt格式的文件。'));
                 return;
             }
 
@@ -285,14 +317,14 @@ const readTxtFileToList = (): Promise<string[]> => {
                     const list = content.split(/\r?\n/).filter(item => item.trim() !== '');
                     resolve(list);
                 } catch (error) {
-                    reject(new Error(`文件解析错误: ${(error as Error).message}`));
+                    reject(new Error(`文件解析错误: ${(error as Error).message}。`));
                 } finally {
                     document.body.removeChild(input);
                 }
             };
 
             reader.onerror = () => {
-                reject(new Error(`文件读取失败: ${reader.error?.message || '未知错误'}`));
+                reject(new Error(`文件读取失败: ${reader.error?.message || '未知错误'}。`));
                 document.body.removeChild(input);
             };
 
@@ -308,12 +340,15 @@ const readTxtFileToList = (): Promise<string[]> => {
  * @param key - 存储键名
  * @param array - 要存储的数组
  */
-const saveArray = (key: string, array: any[]) => {
-    try {
-        localStorage.setItem(key, JSON.stringify(array));
-    } catch (error) {
-        console.error(`存储失败:`, error);
-    }
+const saveArray = (key: string, array: any[]): Promise<any> => {
+    return new Promise((resolve, reject) => {
+        try {
+            localStorage.setItem(key, JSON.stringify(array));
+        } catch (error) {
+            console.error(`存储失败:`, error);
+            reject(new Error(`存储失败: ${(error as Error).message}`));
+        }
+    });
 }
 
 /**
@@ -321,13 +356,13 @@ const saveArray = (key: string, array: any[]) => {
 * @param key - 存储键名
 * @returns 存储的数组，若失败则返回空数组
 */
-const loadArray = (key: string): any[] => {
+const loadArray = (key: string): (any[] | Error) => {
     try {
         const stored = localStorage.getItem(key);
         return stored ? JSON.parse(stored) : [];
     } catch (error) {
         console.error(`读取失败:`, error);
-        return [];
+        return new Error(`读取失败: ${(error as Error).message}`);
     }
 }
 
@@ -368,13 +403,13 @@ const readExcelFileToList = (): Promise<string[]> => {
             const target = e.target as HTMLInputElement;
             const file = target.files?.[0];
             if (!file) {
-                reject(new Error('未选择文件'));
+                reject(new Error('未选择文件。'));
                 document.body.removeChild(input);
                 return;
             }
 
             if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
-                reject(new Error('请选择Excel格式文件（.xlsx或.xls）'));
+                reject(new Error('请选择Excel格式文件（.xlsx或.xls）。'));
                 document.body.removeChild(input);
                 return;
             }
@@ -400,14 +435,14 @@ const readExcelFileToList = (): Promise<string[]> => {
 
                     resolve(nameList);
                 } catch (error) {
-                    reject(new Error(`Excel解析错误: ${(error as Error).message}`));
+                    reject(new Error(`Excel解析错误: ${(error as Error).message}。`));
                 } finally {
                     document.body.removeChild(input);
                 }
             };
 
             reader.onerror = () => {
-                reject(new Error(`文件读取失败: ${reader.error?.message || '未知错误'}`));
+                reject(new Error(`文件读取失败: ${reader.error?.message || '未知错误'}。`));
                 document.body.removeChild(input);
             };
 
