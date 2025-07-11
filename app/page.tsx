@@ -50,8 +50,9 @@ export default function Home() {
         const loadedNameList = loadArray('rollCallNameList');
         if (loadedNameList.length > 0) {
             setNameList(loadedNameList);
-            inputArrayRef.current = loadedNameList;
-            console.log("已加载名单：", loadedNameList);
+            const nonRepeatedList = Array.from(new Set(loadedNameList));
+            inputArrayRef.current = nonRepeatedList;
+            console.log("已加载名单：", nonRepeatedList);
         }
         const loadedSettings = loadArray('rollCallSettings');
         if (loadedSettings.length > 0) {
@@ -106,7 +107,7 @@ export default function Home() {
                                             <>
                                                 <div className="grid gap-2 m-2.5 justify-center grid-cols-[repeat(auto-fit,minmax(260px,400px))] text-center">
                                                     <div>
-                                                        <div className="font-bold">直接编辑</div><div className="text-xs text-gray-500 mb-2 text-center">每行输入一个名字，自动删除空白字符。</div>
+                                                        <div className="font-bold">直接编辑</div><div className="text-xs text-gray-500 mb-2 text-center">每行输入一个名字。</div>
                                                         <div>
                                                             <TextArea ref={textAreaRef} initialValue={nameList.join("\n")} onChange={(e) => {
                                                                 const editedArray = e.target.value.split("\n").map(item => item.trim()).filter(item => item.length > 0);
@@ -140,13 +141,14 @@ export default function Home() {
                                                         <SmallButton onClick={() => { exportToExcel(nameList, "NameList") }}>Excel(.xlsx)</SmallButton>
                                                     </div>
                                                 </div>
-                                                <div className="text-xs text-gray-500 mb-2 text-center">若新旧名单不同，则自动清除循环集合。</div>
+                                                <div className="text-xs text-gray-500 mb-2 text-center">若新旧名单不同，则自动清除循环集合。<br />自动删除每项头尾空白字符与重复项。</div>
                                             </>
                                         , buttons: [{
                                             text: "保存", onClick: () => {
-                                                if (JSON.stringify(nameList) !== JSON.stringify(inputArrayRef.current)) {
-                                                    setNameList(inputArrayRef.current);
-                                                    saveArray('rollCallNameList', inputArrayRef.current);
+                                                const nonRepeatedList = Array.from(new Set(inputArrayRef.current));
+                                                if (JSON.stringify(nameList) !== JSON.stringify(nonRepeatedList)) {
+                                                    setNameList(nonRepeatedList);
+                                                    saveArray('rollCallNameList', nonRepeatedList);
                                                     setCycleSet(new Set());
                                                     saveArray('rollCallCycleSet', []);
                                                 }
