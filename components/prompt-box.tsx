@@ -11,7 +11,7 @@ export type PromptBoxProps = { title?: string, children?: React.ReactNode, mask?
 export default function PromptBox({ title = "标题", children = <></>, mask = true, buttons = [{ text: "确认", stress: true, onClick: () => { } }, { text: "取消", stress: false, onClick: () => { } }] }: PromptBoxProps) {
     return (
         <>
-            <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 bg-white shadow-lg shadow-black/30 rounded-lg p-8">
+            <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 bg-white shadow-lg shadow-black/30 rounded-lg p-8 max-h-[calc(100vh-40px)] overflow-y-auto">
                 <div className="text-4xl font-bold mb-4">{title}</div>
                 <div className="text-lg text-left">{children}</div>
                 <div className="mt-4">
