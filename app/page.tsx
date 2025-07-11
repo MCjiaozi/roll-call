@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import PromptBox, { PromptBoxProps } from '@/components/prompt-box';
 import { BigButton, SmallButton } from '@/components/buttons';
 import TextArea from '@/app/textarea';
+import Link from 'next/link';
 export default function Home() {
     const [name, setName] = useState<string>("");
     const [history, setHistory] = useState<string[]>([]);
@@ -190,7 +191,8 @@ export default function Home() {
                         <div className="text-sm text-gray-500 text-left">
                             1.点名方式：点击“随机点名”按钮后，从名单中随机抽取一人。<br />
                             2.循环集合：勾选“尽量减少重复”后，每次点名会将已点名的人加入循环集合，直到所有人都被点名过一次。<br />
-                            3.数据存储：点名结果、名单、循环集合和设置都会存储在浏览器的 LocalStorage 中，刷新页面不会丢失，但清除浏览器数据或使用隐私模式会导致数据丢失或不可见。
+                            3.数据存储：点名结果、名单、循环集合和设置都会存储在浏览器的 LocalStorage 中，刷新页面不会丢失，但清除浏览器数据或使用隐私模式会导致数据丢失或不可见。<br />
+                            4.源代码：本项目开源，代码托管在 Github 上，欢迎查看和贡献。<Link href="https://github.com/MCjiaozi/roll-call" target="_blank" className="group inline-flex items-center text-blue-600 hover:text-blue-700 font-medium transition-colors duration-300 relative">https://github.com/MCjiaozi/roll-call<span className="absolute bottom-0 left-1/2 h-0.5 bg-blue-600 w-0 group-hover:w-full group-hover:left-0 transition-all duration-300 ease-out"></span></Link>
                         </div>
                     </GirdCard>
                 </div>
