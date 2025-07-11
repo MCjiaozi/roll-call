@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import PromptBox, { PromptBoxProps } from '@/components/prompt-box';
 import { BigButton, SmallButton } from '@/components/buttons';
-import TextArea from '@/app/textarea';
+import TextArea from '@/components/textarea';
 import Link from 'next/link';
 export default function Home() {
     const [name, setName] = useState<string>("");
@@ -113,7 +113,7 @@ export default function Home() {
                                         title: "清除历史记录", children: <><div className="min-w-[260px]">确定要清除历史记录吗？此操作不可撤销。</div></>, buttons: [{
                                             text: "确定", onClick: () => {
                                                 setHistory([]);
-                                                saveData('rollCallHistory', []);
+                                                localStorage.removeItem('rollCallHistory');
                                                 setPrompts(prev => prev.filter(item => item.id !== 2));
                                             }, stress: true
                                         }, {
@@ -212,7 +212,7 @@ export default function Home() {
                                     title: "清除循环集合", children: <><div className="min-w-[260px]">确定要清除循环集合吗？此操作不可撤销。</div></>, buttons: [{
                                         text: "确定", onClick: () => {
                                             setCycleSet(new Set());
-                                            saveData('rollCallCycleSet', []);
+                                            localStorage.removeItem('rollCallHistory');
                                             setPrompts(prev => prev.filter(item => item.id !== 3));
                                         }, stress: true
                                     }, {
@@ -222,11 +222,34 @@ export default function Home() {
                                     }]
                                 }
                             }]);
-                        }}>清除循环集合（{cycleSet.size}）</SmallButton>
+                        }}>清除循环集合（{cycleSet.size}）</SmallButton><br />
+                        <SmallButton onClick={() => {
+                            setPrompts(prev => [...prev.filter(item => item.id !== 4), {
+                                id: 4, props: {
+                                    title: "清除所有数据", children: <><div className="min-w-[260px]">确定要清除所有数据吗？此操作不可撤销。<br />清除所有数据后，页面将恢复为初始数据，但此时数据未保存在 LocalStorage 中。</div></>, buttons: [{
+                                        text: "确定", onClick: () => {
+                                            setCycleSet(new Set());
+                                            localStorage.removeItem('rollCallCycleSet');
+                                            setHistory([]);
+                                            localStorage.removeItem('rollCallHistory');
+                                            setNameList(defaultNameList);
+                                            inputArrayRef.current = defaultNameList;
+                                            localStorage.removeItem('rollCallNameList');
+                                            setSettings([true]);
+                                            localStorage.removeItem('rollCallSettings');
+                                            setPrompts(prev => prev.filter(item => item.id !== 4));
+                                        }, stress: true
+                                    }, {
+                                        text: "取消", onClick: () => {
+                                            setPrompts(prev => prev.filter(item => item.id !== 4));
+                                        }, stress: false
+                                    }]
+                                }
+                            }]);
+                        }}>清除所有数据</SmallButton>
                     </GirdCard>
                     <GirdCard>
                         使用说明
-
                         <div className="text-sm text-gray-500 text-left">
                             1.点名方式：点击“随机点名”按钮后，从名单中随机抽取一人。<br />
                             2.循环集合：勾选“尽量减少重复”后，每次点名会将已点名的人加入循环集合，直到所有人都被点名过一次。<br />
