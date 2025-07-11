@@ -2,6 +2,8 @@
 
 点名器是一款基于Next.js的Web应用，用于课堂或会议中随机抽取人员。应用支持名单管理、历史记录保存、避免重复抽取等功能，并提供了简洁直观的用户界面。
 
+可通过以下链接使用在线版本：https://roll-call.mcjiaozi.com
+
 ## 功能特点
 
 - **随机点名**：从名单中随机抽取人员，支持避免重复抽取功能
@@ -39,7 +41,14 @@ src/
 
 ## 开发与部署
 
+### 本地开发与运行
+
 1. 安装依赖：`npm install`
 2. 启动开发服务器：`npm run dev`
 3. 构建生产版本：`npm run build`
 4. 运行生产版本：`npm run start`
+
+### 容器化部署
+
+1. 构建镜像：`docker build -t roll-call .`
+2. 运行容器：`docker run -p 3000:3000 roll-call`
