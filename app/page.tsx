@@ -296,13 +296,6 @@ const readTxtFileToList = (): Promise<string[]> => {
         };
 
         input.click();
-
-        /*setTimeout(() => {
-            if (!input.files?.length) {
-                reject(new Error('操作已取消'));
-                document.body.removeChild(input);
-            }
-        }, 30000);*/
     });
 }
 
@@ -334,35 +327,6 @@ const loadArray = (key: string): any[] => {
     }
 }
 
-/**
- * 通过用户输入字符串创建或编辑字符串数组
- * @param initialValue 初始值（可选）
- * @param separator 分隔符，默认为英文逗号
- * @returns 分割后的字符串数组或 null（用户取消）
- */
-const editStringArrayByInput = (
-    initialValue: string[] = [],
-    separator: string = ',',
-    promptText: string = '请输入字符串（使用英文逗号分隔）：'
-): string[] | null => {
-    const initialInput = initialValue.join(separator);
-
-    const userInput = prompt(promptText, initialInput);
-
-    if (userInput === null) {
-        return null;
-    }
-
-    const trimmedInput = userInput.trim();
-    if (!trimmedInput) {
-        return [];
-    }
-
-    return trimmedInput
-        .split(separator)
-        .map(item => item.trim())
-        .filter(item => item.length > 0);
-}
 const GirdCard = ({ children }: { children: React.ReactNode }) => {
     return (
         <div className="inline-block p-2.5 rounded-md m-2.5 hover:shadow-lg transition-shadow duration-300 bg-[#ffffff] border border-gray-300">
@@ -382,7 +346,7 @@ const List = ({ list }: { list: string[] }) => {
     )
 }
 
-import * as XLSX from 'xlsx'; // 引入xlsx库
+import * as XLSX from 'xlsx';
 
 /**
  * 从Excel文件导入名单（支持.xlsx格式）
