@@ -1,0 +1,6 @@
+branch:
+  - reg: "^main$"
+    buttons:
+      - name: 构建镜像
+        description: 构建当前分支并发布到 CNB 镜像仓库
+        event: web_trigger_build

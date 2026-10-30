@@ -1,0 +1,24 @@
+main:
+  web_trigger_build: &build_image
+    - name: 构建并发布镜像
+      runner:
+        tags: cnb:arch:amd64
+        cpus: 4
+      services:
+        - docker
+      stages:
+        - name: 构建并推送
+          script: |
+            set -eu
+
+            IMAGE="docker.cnb.cool/${CNB_REPO_SLUG_LOWERCASE}"
+
+            docker buildx build \
+              --progress=plain \
+              --platform linux/amd64 \
+              --target runner \
+              --tag "${IMAGE}:${CNB_COMMIT}" \
+              --tag "${IMAGE}:latest" \
+              --push .
+
+  api_trigger_build: *build_image

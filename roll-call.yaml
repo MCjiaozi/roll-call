@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: roll-call-container
-        image: ghcr.io/mcjiaozi/roll-call:$IMAGE_TAG
+        image: $IMAGE_REPOSITORY:$IMAGE_TAG
         ports:
         - containerPort: 3000
         resources:
@@ -27,7 +27,7 @@ spec:
             memory: "512Mi"
             cpu: "500m"
       imagePullSecrets:
-        - name: ghcr-credentials
+        - name: $PULL_SECRET
 ---
 apiVersion: v1
 kind: Service
